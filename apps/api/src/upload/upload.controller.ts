@@ -7,12 +7,17 @@ import {
   MaxFileSizeValidator,
   FileTypeValidator,
 } from '@nestjs/common';
-import { UploadService } from './upload.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadService } from './upload.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Controller('upload')
 export class UploadController {
-  constructor(private readonly uploadService: UploadService) {}
+  constructor(
+    private readonly uploadService: UploadService,
+    @InjectQueue('book-processing') private readonly bookQueue: Queue,
+  ) {}
 
   @Post()
   @UseInterceptors(FileInterceptor('file'))
@@ -20,13 +25,22 @@ export class UploadController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 1000000 }),
+          new MaxFileSizeValidator({ maxSize: 10000000 }), // 1MB limit
           new FileTypeValidator({ fileType: 'image/*' }),
         ],
       }),
     )
     file: Express.Multer.File,
   ) {
-    return this.uploadService.uploadFile(file.originalname, file.buffer);
+    const { url } = await this.uploadService.uploadFile(
+      file.originalname,
+      file.buffer,
+    );
+    await this.bookQueue.add(
+      'process',
+      { url },
+      { attempts: 3, backoff: 5000 },
+    );
+    return { message: 'File uploaded and processing started', url };
   }
 }

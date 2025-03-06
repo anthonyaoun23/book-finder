@@ -5,6 +5,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -18,6 +19,9 @@ import { ConfigService } from '@nestjs/config';
         ],
       }),
       inject: [ConfigService],
+    }),
+    BullModule.registerQueue({
+      name: 'book-processing',
     }),
   ],
   controllers: [UploadController],

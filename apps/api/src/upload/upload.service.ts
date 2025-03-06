@@ -19,14 +19,16 @@ export class UploadService {
   }
 
   async uploadFile(fileName: string, file: Buffer) {
+    // Ensure filename doesn't contain problematic characters
+    const sanitizedFileName = encodeURIComponent(fileName).replace(/%20/g, '_');
+
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
-      Key: fileName,
+      Key: sanitizedFileName,
       Body: file,
     });
     await this.s3.send(command);
-    return {
-      url: `${this.bucketName}/${fileName}`,
-    };
+    const url = `https://${this.bucketName}.s3.amazonaws.com/${sanitizedFileName}`;
+    return { url };
   }
 }
