@@ -3,7 +3,7 @@ import { Job } from 'bullmq';
 import { RekognitionService } from './rekognition.service';
 import { TextractService } from './textract.service';
 import { Logger } from '@nestjs/common';
-
+import { OpenAIService } from './openai.service';
 @Processor('book-processing')
 export class BookProcessor extends WorkerHost {
   private readonly logger = new Logger(BookProcessor.name);
@@ -11,30 +11,39 @@ export class BookProcessor extends WorkerHost {
   constructor(
     private readonly rekognitionService: RekognitionService,
     private readonly textractService: TextractService,
+    private readonly openaiService: OpenAIService,
   ) {
     super();
   }
 
   async process(job: Job<{ url: string }>) {
-    return this.handleJob(job);
+    return this.processImage(job.data.url);
   }
 
-  async handleJob(job: Job<{ url: string }>) {
-    const { url } = job.data;
-    this.logger.log(`Processing job ${job.id} for image: ${url}`);
+  async processImage(url: string) {
+    try {
+      const { isBook, title, author } =
+        await this.openaiService.analyzeImage(url);
 
-    // Step 1: Validate the image contains a book
-    const isBook = await this.rekognitionService.detectBook(url);
-    if (!isBook) {
-      this.logger.warn(`Image at ${url} does not contain a book`);
-      return;
+      if (!isBook) {
+        this.logger.log(`No book detected in image: ${url}`);
+        return { message: 'No book detected' };
+      }
+
+      if (!title || !author) {
+        this.logger.warn(
+          `Book detected in ${url}, but title or author missing`,
+        );
+        return { message: 'Book detected, but incomplete data', title, author };
+      }
+
+      this.logger.log(`Book detected in ${url}: "${title}" by ${author}`);
+      return { title, author };
+    } catch (error) {
+      this.logger.error(
+        `Error processing image ${url}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
     }
-
-    // Step 2: Extract text from the book cover
-    const text = await this.textractService.extractTextFromImage(url);
-    this.logger.log(`Extracted text from ${url}: ${text}`);
-
-    // Placeholder for next steps (e.g., book identification)
-    return { text }; // Return result for potential future use
   }
 }
