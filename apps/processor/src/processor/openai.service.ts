@@ -16,6 +16,7 @@ interface BookAnalysisResult {
   isBook: boolean;
   title: string | null;
   author: string | null;
+  fiction: boolean | null;
 }
 
 @Injectable()
@@ -84,8 +85,13 @@ export class OpenAIService {
               type: 'string',
               description: 'The author of the book, or null if not found.',
             },
+            fiction: {
+              type: 'boolean',
+              description:
+                'Whether the book is fiction (true) or non-fiction (false), or null if not determined.',
+            },
           },
-          required: ['isBook', 'title', 'author'],
+          required: ['isBook', 'title', 'author', 'fiction'],
         },
       } as const;
 
