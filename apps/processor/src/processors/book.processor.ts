@@ -1,13 +1,13 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { OpenAIService } from './openai.service';
-import { GoogleBooksService } from './google-books.service';
-import { LibgenService } from './libgen.service';
+import { OpenAIService } from './services/openai.service';
+import { GoogleBooksService } from './services/google-books.service';
+import { LibgenService } from './services/libgen.service';
 import {
   BookFormatHandlerService,
   ContentExtractionResult,
-} from './book-format-handler.service';
+} from './services/book-format-handler.service';
 import * as path from 'path';
 
 @Processor('book-processing')

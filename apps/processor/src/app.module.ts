@@ -2,7 +2,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ProcessorModule } from './processor/processor.module';
+import { ProcessorModule } from './processors/processor.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -15,9 +16,6 @@ import { ProcessorModule } from './processor/processor.module';
         },
       }),
       inject: [ConfigService],
-    }),
-    BullModule.registerQueue({
-      name: 'book-processing',
     }),
     ProcessorModule,
   ],

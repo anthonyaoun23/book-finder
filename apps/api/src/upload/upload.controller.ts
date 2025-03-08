@@ -16,7 +16,7 @@ import { Queue } from 'bullmq';
 export class UploadController {
   constructor(
     private readonly uploadService: UploadService,
-    @InjectQueue('book-processing') private readonly bookQueue: Queue,
+    @InjectQueue('image-analysis') private readonly imageQueue: Queue,
   ) {}
 
   @Post()
@@ -25,7 +25,7 @@ export class UploadController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 10000000 }), // 1MB limit
+          new MaxFileSizeValidator({ maxSize: 10000000 }), // 10MB limit
           new FileTypeValidator({ fileType: 'image/*' }),
         ],
       }),
@@ -36,10 +36,10 @@ export class UploadController {
       file.originalname,
       file.buffer,
     );
-    await this.bookQueue.add(
+    await this.imageQueue.add(
       'process',
       { url },
-      { attempts: 3, backoff: 5000 },
+      { attempts: 2, backoff: 5000 },
     );
     return { message: 'File uploaded and processing started', url };
   }

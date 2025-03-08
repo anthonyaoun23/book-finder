@@ -21,7 +21,7 @@ import { BullModule } from '@nestjs/bullmq';
       inject: [ConfigService],
     }),
     BullModule.registerQueue({
-      name: 'book-processing',
+      name: 'image-analysis',
     }),
   ],
   controllers: [UploadController],

@@ -5,6 +5,8 @@ import * as path from 'path';
 import * as pdfjs from 'pdfjs-dist';
 import { EPub } from 'epub2';
 
+pdfjs.GlobalWorkerOptions.workerSrc = 'pdfjs-dist/build/pdf.worker.mjs';
+
 export interface ContentExtractionResult {
   pageNumber: number;
   text: string;
