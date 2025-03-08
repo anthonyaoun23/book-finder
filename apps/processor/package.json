@@ -29,11 +29,16 @@
     "@nestjs/config": "^4.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "axios": "^1.8.1",
     "bullmq": "^5.41.7",
+    "cheerio": "1.0.0",
+    "epub2": "^3.0.2",
     "heic-convert": "^2.1.0",
     "openai": "^4.86.2",
+    "pdfjs-dist": "^4.10.38",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "zipfile": "^0.5.12"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

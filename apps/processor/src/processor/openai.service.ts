@@ -43,6 +43,34 @@ export class OpenAIService {
     });
   }
 
+  /**
+   * Get a text completion from OpenAI
+   * @param prompt The prompt to send to OpenAI
+   * @returns The text response from OpenAI
+   */
+  async getCompletion(prompt: string): Promise<string> {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 500,
+      });
+
+      const content = response.choices[0]?.message?.content || '';
+      return content;
+    } catch (error) {
+      this.logger.error(
+        `OpenAI completion error: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
+  }
+
   async analyzeImage(s3Url: string): Promise<BookAnalysisResult> {
     // Parse S3 URL and generate a signed URL
     const url = new URL(s3Url);

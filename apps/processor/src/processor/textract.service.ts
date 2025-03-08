@@ -50,4 +50,38 @@ export class TextractService {
       throw error;
     }
   }
+
+  /**
+   * Extract text from binary image data using AWS Textract
+   * @param imageBuffer Binary image data (e.g., from a screenshot)
+   * @returns Extracted text
+   */
+  async extractText(imageBuffer: Buffer | Uint8Array): Promise<string> {
+    const command = new AnalyzeDocumentCommand({
+      Document: {
+        Bytes:
+          imageBuffer instanceof Buffer
+            ? imageBuffer
+            : Buffer.from(imageBuffer),
+      },
+      FeatureTypes: ['LAYOUT', 'FORMS'],
+    });
+
+    try {
+      const response = await this.textract.send(command);
+      const text =
+        response.Blocks?.filter((block) => block.BlockType === 'LINE')
+          .map((block) => block.Text)
+          .join('\n') || '';
+      this.logger.debug(
+        `Textract response for binary image: ${text.substring(0, 100)}...`,
+      );
+      return text;
+    } catch (error) {
+      this.logger.error(
+        `Textract error for binary image: ${(error as Error).message}`,
+      );
+      throw error;
+    }
+  }
 }
