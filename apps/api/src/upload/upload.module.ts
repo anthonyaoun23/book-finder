@@ -14,8 +14,14 @@ import { BullModule } from '@nestjs/bullmq';
       useFactory: (configService: ConfigService) => ({
         throttlers: [
           {
+            name: 'file-upload',
             ttl: Number(configService.getOrThrow('UPLOAD_RATE_TTL')) * 1000,
             limit: Number(configService.getOrThrow('UPLOAD_RATE_LIMIT')),
+          },
+          {
+            name: 'default',
+            ttl: Number(configService.get('DEFAULT_RATE_TTL', '60')) * 1000,
+            limit: Number(configService.get('DEFAULT_RATE_LIMIT', '20')),
           },
         ],
       }),

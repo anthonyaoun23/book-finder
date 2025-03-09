@@ -67,4 +67,11 @@ export class UploadService {
     }
     return upload;
   }
+
+  async getAllUploads() {
+    return this.db.upload.findMany({
+      include: { book: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

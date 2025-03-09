@@ -11,12 +11,14 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('upload')
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post()
+  @Throttle({ default: { limit: 0, ttl: 0 } })
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
     @UploadedFile(
@@ -43,7 +45,17 @@ export class UploadController {
     };
   }
 
+  @Get()
+  @Throttle({
+    'file-upload': { limit: 0, ttl: 0 },
+    default: { limit: 20, ttl: 60000 },
+  })
+  async getAllUploads() {
+    return this.uploadService.getAllUploads();
+  }
+
   @Get(':id/status')
+  @Throttle({ default: { limit: 0, ttl: 0 } })
   async getUploadStatus(@Param('id') id: string) {
     return this.uploadService.getUploadStatus(id);
   }

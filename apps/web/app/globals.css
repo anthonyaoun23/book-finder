@@ -1,12 +1,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --blue-gradient: linear-gradient(to bottom, #e0f2fe, #ffffff);
+  --card-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --blue-gradient: linear-gradient(to bottom, #0c4a6e, #082f49);
+    --card-hover: 0 8px 30px rgba(0, 150, 255, 0.15);
   }
 }
 
@@ -14,11 +18,12 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  min-height: 100vh;
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background: var(--blue-gradient);
 }
 
 * {
@@ -34,6 +39,16 @@ a {
 
 .imgDark {
   display: none;
+}
+
+.upload-card {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.upload-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-hover);
 }
 
 @media (prefers-color-scheme: dark) {
