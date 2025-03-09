@@ -8,14 +8,22 @@ RUN turbo prune --scope=processor --docker
 FROM node:18 AS installer
 
 WORKDIR /app
-# Install packages needed for native modules
-RUN apt-get update && apt-get install -y python3 build-essential unzip
+# Install all packages needed for native modules including libzip-dev for zipfile
+RUN apt-get update && apt-get install -y \
+    python3 \
+    build-essential \
+    unzip \
+    libzip-dev \
+    libz-dev \
+    libbz2-dev \
+    pkg-config
 
 COPY --from=pruner /app/out/json .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/turbo.json ./turbo.json
 RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
+# Try to install with verbose logging to see more details if it fails
+RUN pnpm install --frozen-lockfile --verbose
 
 FROM node:18 AS builder
 
@@ -34,6 +42,12 @@ FROM node:18-slim AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
+# Install runtime dependencies for zipfile
+RUN apt-get update && apt-get install -y \
+    unzip \
+    libzip4 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /app/ .
 
 CMD ["node", "apps/processor/dist/main"] 
