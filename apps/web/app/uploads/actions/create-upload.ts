@@ -16,7 +16,6 @@ export default async function createUpload(formData: FormData) {
     
     const data = await response.json();
     
-    // Revalidate the uploads cache
     revalidateTag("uploads");
     
     return { data, error: '' };
