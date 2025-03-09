@@ -20,6 +20,11 @@ WORKDIR /app
 COPY --from=installer /app/ .
 COPY --from=pruner /app/out/full .
 RUN npm install -g pnpm
+
+# Generate Prisma client first
+RUN cd packages/database && npx prisma generate
+
+# Then build all packages
 RUN pnpm run build
 
 FROM node:lts-alpine AS runner

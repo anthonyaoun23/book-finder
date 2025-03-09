@@ -1,0 +1,9 @@
+# Exclude node modules and build artifacts
+node_modules
+**/.turbo
+**/dist
+**/.next
+**/.DS_Store
+
+# Keep all Dockerfiles
+!**/Dockerfile 

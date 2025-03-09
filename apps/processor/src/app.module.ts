@@ -5,7 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ProcessorModule } from './processors/processor.module';
 import { DbModule } from './db/db.module';
 import { LoggerModule } from 'nestjs-pino';
-
+import { HealthController } from './health.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -21,18 +21,37 @@ import { LoggerModule } from 'nestjs-pino';
     }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.getOrThrow('REDIS_HOST'),
-          port: configService.getOrThrow('REDIS_PORT'),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const redisUrl = configService.getOrThrow('REDIS_URL');
+
+        try {
+          const url = new URL(redisUrl);
+
+          return {
+            connection: {
+              host: url.hostname,
+              port: parseInt(url.port, 10) || 6379,
+              username: url.username || undefined,
+              password: url.password || undefined,
+              family: 0,
+              tls: url.protocol === 'rediss:' ? {} : undefined,
+            },
+          };
+        } catch (error) {
+          return {
+            connection: {
+              url: redisUrl,
+              family: 0,
+            },
+          };
+        }
+      },
       inject: [ConfigService],
     }),
     ProcessorModule,
     DbModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [],
 })
 export class AppModule {}
