@@ -8,6 +8,8 @@ RUN turbo prune --scope=processor --docker
 FROM node:lts-alpine AS installer
 
 WORKDIR /app
+# Add build dependencies for native modules
+RUN apk add --no-cache python3 make g++ gcc libc-dev
 COPY --from=pruner /app/out/json .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/turbo.json ./turbo.json
@@ -31,6 +33,8 @@ FROM node:lts-alpine AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
+# Install additional runtime dependencies
+RUN apk add --no-cache unzip
 COPY --from=builder /app/ .
 
 CMD ["node", "apps/processor/dist/main"] 
