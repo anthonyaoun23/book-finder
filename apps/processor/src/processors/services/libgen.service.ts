@@ -18,6 +18,18 @@ interface LibgenBook {
   bookUrl: string | null;
 }
 
+interface FictionBook {
+  id: string;
+  author: string;
+  title: string;
+  series: string;
+  language: string;
+  fileSize: string;
+  extension: string;
+  md5: string;
+  bookUrl: string | null;
+}
+
 @Injectable()
 export class LibgenService {
   private readonly logger = new Logger(LibgenService.name);
@@ -26,7 +38,7 @@ export class LibgenService {
   private readonly maxFileSizeMB = 100; // Maximum file size for download in MB
 
   /**
-   * Search for a book by title and author's last name
+   * Search for a non-fiction book by title and author's last name
    * @param title Book title
    * @param authorLastName Author's last name
    * @returns Array of book results
@@ -40,7 +52,7 @@ export class LibgenService {
       const encodedQuery = encodeURIComponent(searchQuery);
       const searchUrl = `${this.baseUrl}/search.php?req=${encodedQuery}&phrase=1&view=simple&column=def&sort=extension&sortmode=DESC`;
 
-      this.logger.log(`Searching for book: ${searchQuery}`);
+      this.logger.log(`Searching for non-fiction book: ${searchQuery}`);
       this.logger.log(`Search URL: ${searchUrl}`);
 
       const response = await axios.get(searchUrl);
@@ -95,13 +107,103 @@ export class LibgenService {
       });
 
       this.logger.log(
-        `Found ${books.length} books in supported formats under ${this.maxFileSizeMB}MB`,
+        `Found ${books.length} non-fiction books in supported formats under ${this.maxFileSizeMB}MB`,
       );
       return books;
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error searching for book: ${errorMessage}`);
+      this.logger.error(`Error searching for non-fiction book: ${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Search for a fiction book by title and author's last name
+   * @param title Book title
+   * @param authorLastName Author's last name
+   * @returns Array of fiction book results
+   */
+  async searchFictionBook(
+    title: string,
+    authorLastName: string,
+  ): Promise<FictionBook[]> {
+    try {
+      const searchQuery = `${title} ${authorLastName}`;
+      const encodedQuery = encodeURIComponent(searchQuery);
+      const searchUrl = `${this.baseUrl}/fiction/?q=${encodedQuery}`;
+
+      this.logger.log(`Searching for fiction book: ${searchQuery}`);
+      this.logger.log(`Search URL: ${searchUrl}`);
+
+      const response = await axios.get(searchUrl);
+      const $ = cheerio.load(response.data);
+
+      const books: FictionBook[] = [];
+
+      // Fiction books are in a table with class "catalog"
+      $('table.catalog tbody tr').each((i, element) => {
+        const tds = $(element).find('td');
+        if (tds.length < 6) return;
+
+        // Extract author(s)
+        const authorElements = $(tds[0]).find('ul.catalog_authors li a');
+        const authors = authorElements
+          .map((i, el) => $(el).text().trim())
+          .get()
+          .join(', ');
+
+        // Extract series
+        const series = $(tds[1]).text().trim();
+
+        // Extract title and md5
+        const titleElement = $(tds[2]).find('p a').first();
+        const title = titleElement.text().trim();
+        const bookUrl = titleElement.attr('href');
+        const md5Hash = bookUrl ? bookUrl.split('/').pop() : null;
+
+        // Extract language
+        const language = $(tds[3]).text().trim();
+
+        // Extract file info
+        const fileInfo = $(tds[4]).text().trim();
+        const extensionMatch = fileInfo.match(/(EPUB|PDF|MOBI)/i);
+        const extension = extensionMatch ? extensionMatch[0].toLowerCase() : '';
+        
+        // Extract file size
+        const fileSizeMatch = fileInfo.match(/(\d+\.?\d*)\s*(?:M|K)b/i);
+        const fileSize = fileSizeMatch ? fileSizeMatch[0] : '';
+
+        // Only include supported formats
+        if (
+          this.supportedFormats.includes(extension) &&
+          md5Hash
+        ) {
+          const sizeMB = this.parseFileSizeMB(fileSize);
+          if (sizeMB <= this.maxFileSizeMB) {
+            books.push({
+              id: md5Hash,
+              author: authors,
+              title,
+              series,
+              language,
+              fileSize,
+              extension,
+              md5: md5Hash,
+              bookUrl: bookUrl ? `${this.baseUrl}${bookUrl}` : null,
+            });
+          }
+        }
+      });
+
+      this.logger.log(
+        `Found ${books.length} fiction books in supported formats under ${this.maxFileSizeMB}MB`,
+      );
+      return books;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error searching for fiction book: ${errorMessage}`);
       throw error;
     }
   }
@@ -136,14 +238,14 @@ export class LibgenService {
   }
 
   /**
-   * Get the download link for a book by MD5 hash
+   * Get the download link for a non-fiction book by MD5 hash
    * @param md5 MD5 hash of the book
    * @returns Direct download URL
    */
   async getDownloadLink(md5: string): Promise<string> {
     try {
       const mirrorUrl = `http://books.ms/main/${md5}`;
-      this.logger.log(`Getting download link from: ${mirrorUrl}`);
+      this.logger.log(`Getting non-fiction download link from: ${mirrorUrl}`);
 
       const response = await axios.get(mirrorUrl);
       const $ = cheerio.load(response.data);
@@ -155,12 +257,42 @@ export class LibgenService {
         throw new Error('Download link not found');
       }
 
-      this.logger.log(`Found download link: ${downloadLink}`);
+      this.logger.log(`Found non-fiction download link: ${downloadLink}`);
       return downloadLink;
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error getting download link: ${errorMessage}`);
+      this.logger.error(`Error getting non-fiction download link: ${errorMessage}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the download link for a fiction book by MD5 hash
+   * @param md5 MD5 hash of the book
+   * @returns Direct download URL
+   */
+  async getFictionDownloadLink(md5: string): Promise<string> {
+    try {
+      const mirrorUrl = `http://books.ms/fiction/${md5}`;
+      this.logger.log(`Getting fiction download link from: ${mirrorUrl}`);
+
+      const response = await axios.get(mirrorUrl);
+      const $ = cheerio.load(response.data);
+
+      // Find the direct download link (GET button)
+      const downloadLink = $('#download h2 a').first().attr('href');
+
+      if (!downloadLink) {
+        throw new Error('Fiction download link not found');
+      }
+
+      this.logger.log(`Found fiction download link: ${downloadLink}`);
+      return downloadLink;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error getting fiction download link: ${errorMessage}`);
       throw error;
     }
   }
@@ -255,6 +387,7 @@ export class LibgenService {
    * @param authorLastName Author's last name
    * @param outputDir Directory to save the downloaded file
    * @param preferredFormat Preferred format (pdf or epub)
+   * @param isFiction Whether the book is fiction or non-fiction
    * @returns Path to the downloaded file
    */
   async findAndDownloadBook(
@@ -262,13 +395,52 @@ export class LibgenService {
     authorLastName: string,
     outputDir: string = './downloads',
     preferredFormat: 'pdf' | 'epub' = 'pdf',
+    isFiction: boolean = false,
   ): Promise<string | null> {
     try {
-      // Search for the book
+      if (isFiction) {
+        return await this.findAndDownloadFictionBook(
+          title,
+          authorLastName,
+          outputDir,
+          preferredFormat,
+        );
+      } else {
+        return await this.findAndDownloadNonFictionBook(
+          title,
+          authorLastName,
+          outputDir,
+          preferredFormat,
+        );
+      }
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error finding and downloading book: ${errorMessage}`);
+      return null;
+    }
+  }
+
+  /**
+   * Find and download a non-fiction book by title and author's last name
+   * @param title Book title
+   * @param authorLastName Author's last name
+   * @param outputDir Directory to save the downloaded file
+   * @param preferredFormat Preferred format (pdf or epub)
+   * @returns Path to the downloaded file
+   */
+  private async findAndDownloadNonFictionBook(
+    title: string,
+    authorLastName: string,
+    outputDir: string = './downloads',
+    preferredFormat: 'pdf' | 'epub' = 'pdf',
+  ): Promise<string | null> {
+    try {
+      // Search for the non-fiction book
       const books = await this.searchBook(title, authorLastName);
 
       if (books.length === 0) {
-        this.logger.warn(`No books found for: ${title} ${authorLastName}`);
+        this.logger.warn(`No non-fiction books found for: ${title} ${authorLastName}`);
         return null;
       }
 
@@ -284,7 +456,7 @@ export class LibgenService {
       // First try to get the preferred format
       let selectedBook: LibgenBook | null = null;
 
-      // Sort books by preference
+      // Sort books by preference - for non-fiction we use page count
       const sortBooksByPreference = (books: LibgenBook[]): LibgenBook[] => {
         // Sort by pages (descending) to get the book with the most pages
         return [...books].sort((a, b) => b.pages - a.pages);
@@ -302,7 +474,7 @@ export class LibgenService {
         if (selectedBook) {
           const sizeMB = this.parseFileSizeMB(selectedBook.size);
           this.logger.log(
-            `Found book in preferred format (${preferredFormat}): ${selectedBook.title} (${sizeMB.toFixed(2)} MB)`,
+            `Found non-fiction book in preferred format (${preferredFormat}): ${selectedBook.title} (${sizeMB.toFixed(2)} MB)`,
           );
         }
       } else {
@@ -319,7 +491,7 @@ export class LibgenService {
             if (selectedBook) {
               const sizeMB = this.parseFileSizeMB(selectedBook.size);
               this.logger.log(
-                `Found book in alternative format (${format}): ${selectedBook.title} (${sizeMB.toFixed(2)} MB)`,
+                `Found non-fiction book in alternative format (${format}): ${selectedBook.title} (${sizeMB.toFixed(2)} MB)`,
               );
               break;
             }
@@ -329,13 +501,13 @@ export class LibgenService {
 
       // Make sure book exists before proceeding
       if (!selectedBook) {
-        this.logger.warn(`No valid book found for: ${title} ${authorLastName}`);
+        this.logger.warn(`No valid non-fiction book found for: ${title} ${authorLastName}`);
         return null;
       }
 
       const sizeMB = this.parseFileSizeMB(selectedBook.size);
       this.logger.log(
-        `Selected book: ${selectedBook.title} (${selectedBook.pages} pages, ${selectedBook.extension}, ${sizeMB.toFixed(2)} MB)`,
+        `Selected non-fiction book: ${selectedBook.title} (${selectedBook.pages} pages, ${selectedBook.extension}, ${sizeMB.toFixed(2)} MB)`,
       );
 
       // Get the download link
@@ -355,7 +527,120 @@ export class LibgenService {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Error finding and downloading book: ${errorMessage}`);
+      this.logger.error(`Error finding and downloading non-fiction book: ${errorMessage}`);
+      return null;
+    }
+  }
+
+  /**
+   * Find and download a fiction book by title and author's last name
+   * @param title Book title
+   * @param authorLastName Author's last name
+   * @param outputDir Directory to save the downloaded file
+   * @param preferredFormat Preferred format (pdf or epub)
+   * @returns Path to the downloaded file
+   */
+  private async findAndDownloadFictionBook(
+    title: string,
+    authorLastName: string,
+    outputDir: string = './downloads',
+    preferredFormat: 'pdf' | 'epub' = 'epub',
+  ): Promise<string | null> {
+    try {
+      // Search for the fiction book
+      const books = await this.searchFictionBook(title, authorLastName);
+
+      if (books.length === 0) {
+        this.logger.warn(`No fiction books found for: ${title} ${authorLastName}`);
+        return null;
+      }
+
+      // Group books by format
+      const booksByFormat: { [key: string]: FictionBook[] } = {};
+      books.forEach((book) => {
+        if (!booksByFormat[book.extension]) {
+          booksByFormat[book.extension] = [];
+        }
+        booksByFormat[book.extension]?.push(book);
+      });
+
+      // First try to get the preferred format
+      let selectedBook: FictionBook | null = null;
+
+      // For fiction books, we prefer by size instead of page count
+      const sortBooksByPreference = (books: FictionBook[]): FictionBook[] => {
+        // Sort by file size (descending) to get the book with the largest file size
+        return [...books].sort((a, b) => {
+          const sizeA = this.parseFileSizeMB(a.fileSize);
+          const sizeB = this.parseFileSizeMB(b.fileSize);
+          return sizeB - sizeA;
+        });
+      };
+
+      if (
+        booksByFormat[preferredFormat] &&
+        booksByFormat[preferredFormat].length > 0
+      ) {
+        const sortedBooks = sortBooksByPreference(
+          booksByFormat[preferredFormat],
+        );
+        selectedBook = sortedBooks[0] || null;
+        if (selectedBook) {
+          const sizeMB = this.parseFileSizeMB(selectedBook.fileSize);
+          this.logger.log(
+            `Found fiction book in preferred format (${preferredFormat}): ${selectedBook.title} (${sizeMB.toFixed(2)} MB)`,
+          );
+        }
+      } else {
+        // Try other supported formats
+        for (const format of this.supportedFormats) {
+          if (
+            format !== preferredFormat &&
+            booksByFormat[format] &&
+            booksByFormat[format].length > 0
+          ) {
+            const sortedBooks = sortBooksByPreference(booksByFormat[format]);
+            selectedBook = sortedBooks[0] || null;
+            if (selectedBook) {
+              const sizeMB = this.parseFileSizeMB(selectedBook.fileSize);
+              this.logger.log(
+                `Found fiction book in alternative format (${format}): ${selectedBook.title} (${sizeMB.toFixed(2)} MB)`,
+              );
+              break;
+            }
+          }
+        }
+      }
+
+      // Make sure book exists before proceeding
+      if (!selectedBook) {
+        this.logger.warn(`No valid fiction book found for: ${title} ${authorLastName}`);
+        return null;
+      }
+
+      const sizeMB = this.parseFileSizeMB(selectedBook.fileSize);
+      this.logger.log(
+        `Selected fiction book: ${selectedBook.title} (${selectedBook.extension}, ${sizeMB.toFixed(2)} MB)`,
+      );
+
+      // Get the download link
+      const downloadUrl = await this.getFictionDownloadLink(selectedBook.md5);
+
+      // Create a safe filename
+      const safeTitle = selectedBook.title
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .substring(0, 50);
+      const outputPath = path.join(
+        outputDir,
+        `${safeTitle}_${selectedBook.md5}.${selectedBook.extension}`,
+      );
+
+      // Download the book
+      return await this.downloadBook(downloadUrl, outputPath);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error finding and downloading fiction book: ${errorMessage}`);
       return null;
     }
   }

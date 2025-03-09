@@ -54,6 +54,7 @@ export class BookDownloadProcessor extends BaseProcessor {
         title,
         author: authorLastName,
         format: 'pdf',
+        fiction,
       });
 
       const bookPath = await this.libgenService.findAndDownloadBook(
@@ -61,6 +62,7 @@ export class BookDownloadProcessor extends BaseProcessor {
         authorLastName,
         downloadDir,
         'pdf',
+        fiction,
       );
 
       if (!bookPath) {
