@@ -1,15 +1,8 @@
 {
-  "name": "@repo/db",
+  "name": "@repo/nestjs",
   "version": "0.0.0",
   "private": true,
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "scripts": {
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev --skip-generate",
-    "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio",
     "build": "tsc"
   },
   "exports": {
@@ -25,15 +18,16 @@
     }
   },
   "dependencies": {
-    "@prisma/client": "^6.4.1"
+    "@repo/db": "workspace:*",
+    "nestjs-pino": "^4.3.1",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.1",
+    "@nestjs/core": "^11.0.1"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "22.13.9",
-    "@types/eslint": "9.6.1",
-    "eslint": "9.21.0",
-    "typescript": "5.8.2",
-    "prisma": "^6.4.1"
+    "@types/node": "^22.10.7",
+    "@types/express": "^5.0.0"
   }
 }

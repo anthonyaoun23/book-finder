@@ -5,6 +5,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
+import { DbModule } from '../db/db.module';
 import { BullModule } from '@nestjs/bullmq';
 
 @Module({
@@ -20,6 +21,7 @@ import { BullModule } from '@nestjs/bullmq';
       }),
       inject: [ConfigService],
     }),
+    DbModule,
     BullModule.registerQueue({
       name: 'image-analysis',
     }),

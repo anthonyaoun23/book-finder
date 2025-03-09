@@ -6,18 +6,15 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Get,
+  Param,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 
 @Controller('upload')
 export class UploadController {
-  constructor(
-    private readonly uploadService: UploadService,
-    @InjectQueue('image-analysis') private readonly imageQueue: Queue,
-  ) {}
+  constructor(private readonly uploadService: UploadService) {}
 
   @Post()
   @UseInterceptors(FileInterceptor('file'))
@@ -36,11 +33,18 @@ export class UploadController {
       file.originalname,
       file.buffer,
     );
-    await this.imageQueue.add(
-      'process',
-      { url },
-      { attempts: 2, backoff: 5000 },
-    );
-    return { message: 'File uploaded and processing started', url };
+
+    const upload = await this.uploadService.createUpload(url);
+    await this.uploadService.queueUpload(upload.id, url);
+
+    return {
+      message: 'File uploaded and processing started',
+      uploadId: upload.id,
+    };
+  }
+
+  @Get(':id/status')
+  async getUploadStatus(@Param('id') id: string) {
+    return this.uploadService.getUploadStatus(id);
   }
 }

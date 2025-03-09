@@ -1,14 +1,24 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { init } from '@repo/nestjs';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
-  // Set log level to debug to see all logs
-  Logger.overrideLogger(['debug', 'log', 'warn', 'error']);
-  
-  const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3002);
-  
-  Logger.log(`Application is running on port ${process.env.PORT ?? 3002}`, 'Bootstrap');
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+  const logger = app.get(Logger);
+  app.useLogger(logger);
+
+  logger.log('Starting Book Finder Processor application');
+
+  await init(app);
+
+  logger.log('Processor initialized and ready to process jobs');
 }
-bootstrap();
+
+// Start the application
+bootstrap().catch((err) => {
+  console.error('Failed to start processor application:', err);
+  process.exit(1);
+});

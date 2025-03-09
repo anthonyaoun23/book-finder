@@ -10,7 +10,7 @@ import { BookFormatHandlerService } from './services/book-format-handler.service
 import { RekognitionService } from './services/rekognition.service';
 import { TextractService } from './services/textract.service';
 import { BullModule } from '@nestjs/bullmq';
-
+import { DbService } from '../db/db.service';
 @Module({
   imports: [
     BullModule.registerQueue(
@@ -31,6 +31,7 @@ import { BullModule } from '@nestjs/bullmq';
     BookFormatHandlerService,
     RekognitionService,
     TextractService,
+    DbService,
   ],
 })
 export class ProcessorModule {}
