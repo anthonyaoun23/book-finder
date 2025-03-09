@@ -65,12 +65,6 @@ export class UploadService {
     if (!upload) {
       throw new NotFoundException('Upload not found');
     }
-    if (upload.status === 'completed') {
-      return { pageContent: upload.book?.pageContent };
-    } else if (upload.status === 'failed') {
-      return { message: 'Processing failed' };
-    } else {
-      return { message: 'Processing in progress' };
-    }
+    return upload;
   }
 }
