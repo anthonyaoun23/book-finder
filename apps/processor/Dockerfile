@@ -8,8 +8,9 @@ RUN turbo prune --scope=processor --docker
 FROM node:lts-alpine AS installer
 
 WORKDIR /app
-# Add build dependencies for native modules
-RUN apk add --no-cache python3 make g++ gcc libc-dev
+# Install packages needed for native modules using apt (not apk)
+RUN apt-get update && apt-get install -y python3 build-essential unzip
+
 COPY --from=pruner /app/out/json .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/turbo.json ./turbo.json
