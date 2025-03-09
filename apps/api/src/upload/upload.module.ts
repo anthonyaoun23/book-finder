@@ -20,8 +20,8 @@ import { BullModule } from '@nestjs/bullmq';
           },
           {
             name: 'default',
-            ttl: Number(configService.get('DEFAULT_RATE_TTL', '60')) * 1000,
-            limit: Number(configService.get('DEFAULT_RATE_LIMIT', '20')),
+            ttl: Number(configService.getOrThrow('DEFAULT_RATE_TTL', '60')) * 1000,
+            limit: Number(configService.getOrThrow('DEFAULT_RATE_LIMIT', '25')),
           },
         ],
       }),

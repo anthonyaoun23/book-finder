@@ -59,6 +59,7 @@ export default function UploadForm() {
           e.target.reset();
         }
 
+        // Redirect to the upload detail page
         if (result.data && result.data.uploadId) {
           router.push(`/uploads/${result.data.uploadId}`);
         }

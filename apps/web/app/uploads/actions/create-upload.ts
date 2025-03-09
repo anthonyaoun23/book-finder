@@ -1,27 +1,15 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
+import { uploadFile } from "@/app/common/util/fetch";
+import { FormResponse } from "@/app/common/interfaces/form-response.interface";
 
-export default async function createUpload(formData: FormData) {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
-      method: "POST",
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      return { error: error.message || 'Upload failed' };
-    }
-    
-    const data = await response.json();
-    
+export default async function createUpload(formData: FormData): Promise<FormResponse<{uploadId: string}>> {
+  const response = await uploadFile("upload", formData);
+  
+  if (!response.error) {
     revalidateTag("uploads");
-    
-    return { data, error: '' };
-  } catch (error) {
-    return { 
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
   }
+  
+  return response;
 } 

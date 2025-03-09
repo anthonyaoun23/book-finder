@@ -1,7 +1,7 @@
 "use client";
 
-import { Card, Flex, Text, Badge, Avatar, Box } from "@radix-ui/themes";
-import { FileTextIcon, BookmarkIcon } from "@radix-ui/react-icons";
+import { Card, Flex, Text, Badge, Box } from "@radix-ui/themes";
+import { BookmarkIcon, FileTextIcon } from "@radix-ui/react-icons";
 import { Upload as IUpload } from "./interfaces/upload.interface";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -28,6 +28,23 @@ export default function Upload({ upload }: UploadProps) {
     }
   };
 
+  const getFictionBadge = () => {
+    if (upload.extractedFiction === undefined && !upload.book) {
+      return null;
+    }
+    
+    const isFiction = upload.book?.fiction ?? upload.extractedFiction;
+    
+    return (
+      <Badge color={isFiction ? "purple" : "indigo"} variant="soft">
+        <Flex align="center" gap="1">
+          <BookmarkIcon />
+          <Text>{isFiction ? "Fiction" : "Non-Fiction"}</Text>
+        </Flex>
+      </Badge>
+    );
+  };
+
   return (
     <Card 
       asChild 
@@ -42,25 +59,9 @@ export default function Upload({ upload }: UploadProps) {
       <div>
         <Flex direction="column" gap="3">
           <Flex justify="between" align="center">
-            <Flex align="center" gap="2">
-              {upload.book ? (
-                <Avatar 
-                  fallback={<BookmarkIcon />}
-                  src={upload.imageUrl}
-                  radius="full"
-                  size="2"
-                />
-              ) : (
-                <Avatar 
-                  fallback={<FileTextIcon />}
-                  radius="full"
-                  size="2"
-                />
-              )}
-              <Text weight="bold" size="2">
-                {upload.book?.title || upload.extractedTitle || "Untitled Book"}
-              </Text>
-            </Flex>
+            <Text weight="bold" size="2">
+              {upload.book?.title || upload.extractedTitle || "Untitled Book"}
+            </Text>
             {getStatusBadge()}
           </Flex>
           
@@ -82,9 +83,12 @@ export default function Upload({ upload }: UploadProps) {
               </Text>
             ) : null}
             
-            <Text size="2" color="gray">
-              Uploaded: {new Date(upload.createdAt).toLocaleDateString()}
-            </Text>
+            <Flex justify="between" align="center">
+              <Text size="2" color="gray">
+                {new Date(upload.createdAt).toLocaleDateString()}
+              </Text>
+              {getFictionBadge()}
+            </Flex>
           </Flex>
         </Flex>
       </div>
