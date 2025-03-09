@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, Flex, Text, Badge, Box } from "@radix-ui/themes";
-import { BookmarkIcon, FileTextIcon } from "@radix-ui/react-icons";
+import { BookmarkIcon } from "@radix-ui/react-icons";
 import { Upload as IUpload } from "./interfaces/upload.interface";
 import { useRouter } from "next/navigation";
 import Image from "next/image";

@@ -2,7 +2,7 @@ import getUpload from "../actions/get-upload";
 import UploadDetailClient from "./upload-detail-client";
 
 interface UploadDetailProps {
-  params: { uploadId: string };
+  params: Promise<{ uploadId: string }>;
 }
 
 export default async function UploadDetail(props: UploadDetailProps) {

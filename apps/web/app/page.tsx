@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Heading } from "@radix-ui/themes";
 import Uploads from "./uploads/uploads";
 import Image from "next/image";
