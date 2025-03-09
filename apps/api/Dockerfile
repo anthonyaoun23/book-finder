@@ -21,10 +21,9 @@ COPY --from=installer /app/ .
 COPY --from=pruner /app/out/full .
 RUN npm install -g pnpm
 
-# Generate Prisma client first
-RUN cd packages/database && npx prisma generate
+RUN cd packages/database && pnpm dlx prisma migrate deploy
+RUN cd packages/database && pnpm dlx prisma generate
 
-# Then build all packages
 RUN pnpm run build
 
 FROM node:lts-alpine AS runner
