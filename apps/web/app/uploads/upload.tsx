@@ -45,6 +45,15 @@ export default function Upload({ upload }: UploadProps) {
     );
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    });
+  };
+
   return (
     <Card 
       asChild 
@@ -107,7 +116,7 @@ export default function Upload({ upload }: UploadProps) {
             
             <Flex justify="between" align="center">
               <Text size="2" color="gray">
-                {new Date(upload.createdAt).toLocaleDateString()}
+                {formatDate(upload.createdAt)}
               </Text>
               {getFictionBadge()}
             </Flex>

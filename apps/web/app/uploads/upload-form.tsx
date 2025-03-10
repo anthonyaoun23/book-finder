@@ -3,8 +3,12 @@
 import { Button, Card, Flex, Text } from "@radix-ui/themes";
 import { UploadIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
-import createUpload from "./actions/create-upload";
+import { uploadFile } from "@/app/common/util/fetch";
 import { useRouter } from "next/navigation";
+
+interface UploadResponse {
+  uploadId: string;
+}
 
 export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -43,12 +47,13 @@ export default function UploadForm() {
     }
 
     setIsUploading(true);
+    setError("");
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const result = await createUpload(formData);
+      const result = await uploadFile<UploadResponse>("upload", formData);
 
       if (result.error) {
         setError(result.error);

@@ -16,53 +16,103 @@ import { Upload } from "../interfaces/upload.interface";
 import Image from "next/image";
 import { ArrowLeftIcon, ReloadIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { get } from "@/app/common/util/fetch";
 
 interface UploadDetailClientProps {
-  initialUpload: Upload;
-  getUploadAction: (id: string) => Promise<Upload>;
+  uploadId: string;
 }
 
 export default function UploadDetailClient({
-  initialUpload,
-  getUploadAction,
+  uploadId,
 }: UploadDetailClientProps) {
-  const [upload, setUpload] = useState<Upload>(initialUpload);
-  const [isPolling, setIsPolling] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
+  const [upload, setUpload] = useState<Upload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Poll for updates every 3 seconds if the upload is still processing
+  // Define fetch function outside of useEffect to avoid recreating it
+  const fetchUpload = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await get<Upload>(`upload/${uploadId}/status`);
+      setUpload(data);
+      setError(null);
+      return data;
+    } catch (err) {
+      console.error("Error fetching upload:", err);
+      setError("Failed to load upload data");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [uploadId]);
+
+  // Initial data loading
   useEffect(() => {
-    if (!isPolling) return;
+    fetchUpload();
+  }, [fetchUpload]);
+
+  // Separate effect for polling to avoid dependency cycles
+  useEffect(() => {
+    if (!upload) return;
     
-    // Only poll if the upload is still pending or processing
+    // Only poll if the upload is still processing
     if (upload.status !== "pending" && upload.status !== "processing") {
-      setIsPolling(false);
       return;
     }
-
-    const interval = setInterval(async () => {
-      try {
-        setIsFetching(true);
-        const updatedUpload = await getUploadAction(upload.id);
-        setUpload(updatedUpload);
-        
-        // Stop polling if the upload is done processing
-        if (updatedUpload.status !== "pending" && updatedUpload.status !== "processing") {
-          setIsPolling(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch upload status:", error);
-      } finally {
-        setIsFetching(false);
-      }
+    
+    // Set up polling
+    const pollingTimer = setTimeout(async () => {
+      await fetchUpload();
     }, 5000);
+    
+    // Clean up
+    return () => {
+      clearTimeout(pollingTimer);
+    };
+  }, [upload, fetchUpload]);
 
-    return () => clearInterval(interval);
-  }, [upload, getUploadAction, isPolling]);
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    await fetchUpload();
+    router.refresh();
+  };
 
+  if (loading && !upload) {
+    return (
+      <Flex direction="column" align="center" justify="center" gap="3" py="9">
+        <Spinner size="3" />
+        <Text size="3">Loading upload details...</Text>
+      </Flex>
+    );
+  }
+
+  if (error && !upload) {
+    return (
+      <Flex direction="column" align="center" justify="center" py="9">
+        <Text size="3" color="red">
+          {error}
+        </Text>
+        <Button onClick={handleRefresh} variant="soft" mt="4">
+          Try Again
+        </Button>
+      </Flex>
+    );
+  }
+
+  if (!upload) {
+    return (
+      <Flex direction="column" align="center" justify="center" py="9">
+        <Text size="3" color="red">
+          Upload not found
+        </Text>
+      </Flex>
+    );
+  }
+
+  // Get status badge
   const getStatusBadge = () => {
     switch (upload.status) {
       case "pending":
@@ -78,18 +128,17 @@ export default function UploadDetailClient({
     }
   };
 
-  const handleManualRefresh = async () => {
-    try {
-      setIsFetching(true);
-      const updatedUpload = await getUploadAction(upload.id);
-      setUpload(updatedUpload);
-      // Force a router refresh to ensure we have the latest data
-      router.refresh();
-    } catch (error) {
-      console.error("Failed to refresh upload:", error);
-    } finally {
-      setIsFetching(false);
-    }
+  // Format date consistently for both server and client
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   };
 
   return (
@@ -104,10 +153,10 @@ export default function UploadDetailClient({
         <Flex align="center" gap="2">
           {(upload.status === "pending" || upload.status === "processing") && (
             <Flex align="center" gap="2">
-              {isFetching ? (
+              {loading ? (
                 <Spinner size="1" />
               ) : (
-                <Button variant="outline" size="1" onClick={handleManualRefresh}>
+                <Button variant="outline" size="1" onClick={handleRefresh}>
                   <ReloadIcon width={14} height={14} />
                   Refresh
                 </Button>
@@ -133,7 +182,6 @@ export default function UploadDetailClient({
                 }}
               >
                 {!upload.imageUrl ? (
-                  // Skeleton placeholder when imageUrl is null
                   <Flex 
                     align="center" 
                     justify="center"
@@ -165,7 +213,6 @@ export default function UploadDetailClient({
                     </Box>
                   </Flex>
                 ) : (
-                  // Actual image when imageUrl exists
                   <Image
                     src={upload.imageUrl}
                     alt="Book cover"
@@ -180,7 +227,7 @@ export default function UploadDetailClient({
               <Flex direction="column" gap="2">
                 <Text size="2" weight="bold" color="blue">Upload Details</Text>
                 <Text size="2">
-                  Uploaded: {new Date(upload.createdAt).toLocaleString()}
+                  Uploaded: {formatDate(upload.createdAt)}
                 </Text>
                 <Flex align="center" gap="2">
                   <Text size="2">Status: {upload.status}</Text>
