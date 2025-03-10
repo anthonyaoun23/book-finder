@@ -3,7 +3,6 @@ import { ImageAnalysisProcessor } from './image-analysis/image-analysis.processo
 import { BookLookupProcessor } from './book-lookup/book-lookup.processor';
 import { BookDownloadProcessor } from './book-download/book-download.processor';
 import { ContentExtractionProcessor } from './content-extraction/content-extraction.processor';
-import { FileUploadProcessor } from './file-upload/file-upload.processor';
 import { OpenAIService } from './services/openai.service';
 import { GoogleBooksService } from './services/google-books.service';
 import { LibgenService } from './services/libgen.service';
@@ -15,7 +14,6 @@ import { DbService } from '../db/db.service';
 @Module({
   imports: [
     BullModule.registerQueue(
-      { name: 'file-upload' },
       { name: 'image-analysis' },
       { name: 'book-lookup' },
       { name: 'book-download' },
@@ -23,7 +21,6 @@ import { DbService } from '../db/db.service';
     ),
   ],
   providers: [
-    FileUploadProcessor,
     ImageAnalysisProcessor,
     BookLookupProcessor,
     BookDownloadProcessor,

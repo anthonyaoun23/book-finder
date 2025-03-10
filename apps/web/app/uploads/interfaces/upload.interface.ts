@@ -10,7 +10,7 @@ export interface Book {
 
 export interface Upload {
   id: string;
-  imageUrl?: string;
+  imageUrl: string;
   extractedTitle?: string;
   extractedAuthor?: string;
   extractedFiction?: boolean;

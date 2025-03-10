@@ -132,49 +132,14 @@ export default function UploadDetailClient({
                   border: "1px solid var(--blue-5)",
                 }}
               >
-                {!upload.imageUrl ? (
-                  // Skeleton placeholder when imageUrl is null
-                  <Flex 
-                    align="center" 
-                    justify="center"
-                    height="100%" 
-                    style={{ 
-                      backgroundColor: 'var(--gray-3)', 
-                      animation: 'pulse 1.5s ease-in-out infinite alternate',
-                    }}
-                  >
-                    <Box width="100%" height="100%" style={{ position: 'relative' }}>
-                      <style jsx global>{`
-                        @keyframes pulse {
-                          0% { opacity: 0.6; }
-                          100% { opacity: 1; }
-                        }
-                      `}</style>
-                      <Flex 
-                        align="center" 
-                        justify="center" 
-                        height="100%"
-                        direction="column"
-                        gap="2"
-                      >
-                        <Text color="gray" size="2">Image processing...</Text>
-                        {(upload.status === "pending" || upload.status === "processing") && (
-                          <Spinner size="2" />
-                        )}
-                      </Flex>
-                    </Box>
-                  </Flex>
-                ) : (
-                  // Actual image when imageUrl exists
-                  <Image
-                    src={upload.imageUrl}
-                    alt="Book cover"
-                    fill
-                    style={{
-                      objectFit: "contain",
-                    }}
-                  />
-                )}
+                <Image
+                  src={upload.imageUrl}
+                  alt="Book cover"
+                  fill
+                  style={{
+                    objectFit: "contain",
+                  }}
+                />
               </Box>
               
               <Flex direction="column" gap="2">

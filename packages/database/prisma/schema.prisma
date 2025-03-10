@@ -31,7 +31,7 @@ model Book {
 
 model Upload {
   id               String   @id @default(uuid())
-  imageUrl         String?
+  imageUrl         String
   extractedTitle   String?
   extractedAuthor  String?
   extractedFiction Boolean?

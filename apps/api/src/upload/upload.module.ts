@@ -28,10 +28,9 @@ import { BullModule } from '@nestjs/bullmq';
       inject: [ConfigService],
     }),
     DbModule,
-    BullModule.registerQueue(
-      { name: 'file-upload' },
-      { name: 'image-analysis' },
-    ),
+    BullModule.registerQueue({
+      name: 'image-analysis',
+    }),
   ],
   controllers: [UploadController],
   providers: [
