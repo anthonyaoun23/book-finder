@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Flex, Text, Badge, Box } from "@radix-ui/themes";
+import { Card, Flex, Text, Badge, Box, Spinner } from "@radix-ui/themes";
 import { BookmarkIcon } from "@radix-ui/react-icons";
 import { Upload as IUpload } from "./interfaces/upload.interface";
 import { useRouter } from "next/navigation";
@@ -66,14 +66,36 @@ export default function Upload({ upload }: UploadProps) {
           </Flex>
           
           <Box position="relative" height="140px" style={{ overflow: 'hidden', borderRadius: 'var(--radius-2)' }}>
-            <Image
-              src={upload.imageUrl}
-              alt="Book cover"
-              fill
-              style={{
-                objectFit: 'cover',
-              }}
-            />
+            {!upload.imageUrl ? (
+              <Flex 
+                align="center" 
+                justify="center" 
+                height="100%"
+                style={{ 
+                  backgroundColor: 'var(--gray-3)', 
+                  animation: 'pulse 1.5s ease-in-out infinite alternate',
+                }}
+              >
+                <style jsx global>{`
+                  @keyframes pulse {
+                    0% { opacity: 0.6; }
+                    100% { opacity: 1; }
+                  }
+                `}</style>
+                {(upload.status === "pending" || upload.status === "processing") && (
+                  <Spinner size="1" />
+                )}
+              </Flex>
+            ) : (
+              <Image
+                src={upload.imageUrl}
+                alt="Book cover"
+                fill
+                style={{
+                  objectFit: 'cover',
+                }}
+              />
+            )}
           </Box>
           
           <Flex direction="column" gap="1">
