@@ -4,9 +4,10 @@ import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: 'image-analysis',
-    }),
+    BullModule.registerQueue(
+      { name: 'file-upload' },
+      { name: 'image-analysis' },
+    ),
   ],
   providers: [DbService],
   exports: [DbService],

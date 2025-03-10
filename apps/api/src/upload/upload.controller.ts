@@ -31,17 +31,15 @@ export class UploadController {
     )
     file: Express.Multer.File,
   ) {
-    const { url } = await this.uploadService.uploadFile(
+    // Queue the file upload job instead of directly uploading to S3
+    const { uploadId } = await this.uploadService.uploadFile(
       file.originalname,
       file.buffer,
     );
 
-    const upload = await this.uploadService.createUpload(url);
-    await this.uploadService.queueUpload(upload.id, url);
-
     return {
-      message: 'File uploaded and processing started',
-      uploadId: upload.id,
+      message: 'File upload queued for processing',
+      uploadId,
     };
   }
 
