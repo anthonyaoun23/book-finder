@@ -21,7 +21,6 @@ COPY --from=installer /app/ .
 COPY --from=pruner /app/out/full .
 RUN npm install -g pnpm
 
-RUN cd packages/database && pnpm dlx prisma migrate deploy
 RUN cd packages/database && pnpm dlx prisma generate
 
 RUN pnpm run build
