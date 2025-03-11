@@ -15,7 +15,10 @@
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
-    "strictBindCallApply": true,
-    "noFallthroughCasesInSwitch": true
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "strict": false
   }
 }

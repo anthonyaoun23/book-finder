@@ -31,7 +31,6 @@ export class UploadController {
     )
     file: Express.Multer.File,
   ) {
-    // Queue the file upload job instead of directly uploading to S3
     const { uploadId } = await this.uploadService.uploadFile(
       file.originalname,
       file.buffer,
@@ -44,14 +43,14 @@ export class UploadController {
   }
 
   @Get()
-  @SkipThrottle({ 'file-upload': true }) 
+  @SkipThrottle({ 'file-upload': true })
   @Throttle({ default: { limit: 60, ttl: 60000 } })
   async getAllUploads() {
     return this.uploadService.getAllUploads();
   }
 
   @Get(':id/status')
-  @SkipThrottle({ 'file-upload': true }) 
+  @SkipThrottle({ 'file-upload': true })
   @Throttle({ default: { limit: 60, ttl: 60000 } })
   async getUploadStatus(@Param('id') id: string) {
     return this.uploadService.getUploadStatus(id);

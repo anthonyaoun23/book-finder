@@ -32,7 +32,6 @@ export default function UploadDetailClient({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Define fetch function outside of useEffect to avoid recreating it
   const fetchUpload = useCallback(async () => {
     try {
       setLoading(true);
@@ -49,32 +48,26 @@ export default function UploadDetailClient({
     }
   }, [uploadId]);
 
-  // Initial data loading
   useEffect(() => {
     fetchUpload();
   }, [fetchUpload]);
 
-  // Separate effect for polling to avoid dependency cycles
   useEffect(() => {
     if (!upload) return;
     
-    // Only poll if the upload is still processing
     if (upload.status !== "pending" && upload.status !== "processing") {
       return;
     }
     
-    // Set up polling
     const pollingTimer = setTimeout(async () => {
       await fetchUpload();
     }, 5000);
     
-    // Clean up
     return () => {
       clearTimeout(pollingTimer);
     };
   }, [upload, fetchUpload]);
 
-  // Handle manual refresh
   const handleRefresh = async () => {
     await fetchUpload();
     router.refresh();
@@ -128,7 +121,6 @@ export default function UploadDetailClient({
     }
   };
 
-  // Format date consistently for both server and client
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {

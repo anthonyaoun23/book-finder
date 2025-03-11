@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { UploadController } from './upload.controller';
-import { UploadService } from './upload.service';
+import { ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { ConfigService } from '@nestjs/config';
-import { DbModule } from '../db/db.module';
 import { BullModule } from '@nestjs/bullmq';
+import { UploadController } from './upload.controller';
+import { UploadService } from './upload.service';
+import { DbModule } from '../db/db.module';
 
 @Module({
   imports: [
@@ -20,7 +20,8 @@ import { BullModule } from '@nestjs/bullmq';
           },
           {
             name: 'default',
-            ttl: Number(configService.getOrThrow('DEFAULT_RATE_TTL', '60')) * 1000,
+            ttl:
+              Number(configService.getOrThrow('DEFAULT_RATE_TTL', '60')) * 1000,
             limit: Number(configService.getOrThrow('DEFAULT_RATE_LIMIT', '25')),
           },
         ],

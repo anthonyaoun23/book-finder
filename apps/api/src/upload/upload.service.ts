@@ -12,18 +12,11 @@ export class UploadService {
     @InjectQueue('file-upload') private readonly fileUploadQueue: Queue,
   ) {}
 
-  /**
-   * Queue a file upload job instead of directly uploading to S3
-   * This offloads the heavy lifting to the processor application
-   */
   async uploadFile(fileName: string, file: Buffer) {
-    // Create an initial upload record in the database
     const upload = await this.createUpload();
 
-    // Convert buffer to base64 string for reliable queue transport
     const fileBase64 = file.toString('base64');
 
-    // Queue the file upload job
     await this.fileUploadQueue.add(
       'upload',
       {
@@ -31,16 +24,12 @@ export class UploadService {
         fileName,
         fileBase64,
       },
-      { attempts: 3, backoff: { type: 'exponential', delay: 5000 } }
+      { attempts: 3, backoff: { type: 'exponential', delay: 5000 } },
     );
 
     return { uploadId: upload.id };
   }
 
-  /**
-   * Create an initial upload record with pending status and no imageUrl
-   * The processor will update this record with the imageUrl after S3 upload
-   */
   async createUpload() {
     const upload = await this.db.upload.create({
       data: {
@@ -51,9 +40,6 @@ export class UploadService {
     return upload;
   }
 
-  /**
-   * Get the status of an upload
-   */
   async getUploadStatus(uploadId: string) {
     const upload = await this.db.upload.findUnique({
       where: { id: uploadId },
@@ -65,9 +51,6 @@ export class UploadService {
     return upload;
   }
 
-  /**
-   * Get all uploads with their associated books
-   */
   async getAllUploads() {
     return this.db.upload.findMany({
       include: { book: true },

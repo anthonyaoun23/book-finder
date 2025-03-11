@@ -21,29 +21,20 @@ import { HealthController } from './health.controller';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        const redisUrl = configService.getOrThrow('REDIS_URL');
+        const redisUrl: string = configService.getOrThrow('REDIS_URL');
 
-        try {
-          const url = new URL(redisUrl);
+        const url = new URL(redisUrl);
 
-          return {
-            connection: {
-              host: url.hostname,
-              port: parseInt(url.port, 10) || 6379,
-              username: url.username || undefined,
-              password: url.password || undefined,
-              family: 0,
-              tls: url.protocol === 'rediss:' ? {} : undefined,
-            },
-          };
-        } catch (error) {
-          return {
-            connection: {
-              url: redisUrl,
-              family: 0,
-            },
-          };
-        }
+        return {
+          connection: {
+            host: url.hostname,
+            port: parseInt(url.port, 10) || 6379,
+            username: url.username || undefined,
+            password: url.password || undefined,
+            family: 0,
+            tls: url.protocol === 'rediss:' ? {} : undefined,
+          },
+        };
       },
       inject: [ConfigService],
     }),
