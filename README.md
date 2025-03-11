@@ -43,6 +43,7 @@ The database (managed by Prisma in `packages/database`) stores user uploads and 
 ---
 
 ## Repository Structure
+
 ```
 book-finder/
 ├── README.md # This file
@@ -80,6 +81,7 @@ book-finder/
 ├── pnpm-workspace.yaml
 └── turbo.json # Turborepo configuration
 ```
+
 ---
 
 ## Architecture & Flowchart
@@ -288,3 +290,7 @@ Make sure the environment variables in your `.env` files match the settings in `
    - The Web client retrieves the processed result from the API and displays it to the user.
 
 ---
+
+## License
+
+This project is provided as-is for demonstration and interview purposes. Ensure you follow any applicable third-party API and data usage policies when deploying or modifying the code.
