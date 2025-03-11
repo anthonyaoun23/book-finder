@@ -11,13 +11,14 @@ import {
   Button,
   Separator,
   Spinner,
+  Dialog,
 } from "@radix-ui/themes";
 import { Upload } from "../interfaces/upload.interface";
 import Image from "next/image";
 import { ArrowLeftIcon, ReloadIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { get } from "@/app/common/util/fetch";
 
 interface UploadDetailClientProps {
@@ -30,7 +31,10 @@ export default function UploadDetailClient({
   const [upload, setUpload] = useState<Upload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFailedModal, setShowFailedModal] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isUploader = searchParams.get('isUploader') === 'true';
 
   const fetchUpload = useCallback(async () => {
     try {
@@ -53,7 +57,11 @@ export default function UploadDetailClient({
   }, [fetchUpload]);
 
   useEffect(() => {
-    if (!upload) return;
+    if (!upload || !isUploader) return;
+    
+    if (upload.status === "failed") {
+      setShowFailedModal(true);
+    }
     
     if (upload.status !== "pending" && upload.status !== "processing") {
       return;
@@ -66,7 +74,7 @@ export default function UploadDetailClient({
     return () => {
       clearTimeout(pollingTimer);
     };
-  }, [upload, fetchUpload]);
+  }, [upload, fetchUpload, isUploader]);
 
   const handleRefresh = async () => {
     await fetchUpload();
@@ -135,6 +143,29 @@ export default function UploadDetailClient({
 
   return (
     <Flex direction="column" gap="6">
+      <Dialog.Root open={showFailedModal} onOpenChange={setShowFailedModal}>
+        <Dialog.Content>
+          <Dialog.Title>Upload Failed</Dialog.Title>
+          <Dialog.Description size="2" mb="4">
+            The book upload process has failed. Either it wasn't a valid book cover or something went wrong during processing.
+          </Dialog.Description>
+          
+          <Flex gap="3" justify="end">
+            <Dialog.Close>
+              <Button variant="soft" color="gray">
+                Stay on this page
+              </Button>
+            </Dialog.Close>
+            <Button 
+              color="blue" 
+              onClick={() => router.push('/')}
+            >
+              Return to homepage
+            </Button>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
+
       <Flex justify="between" align="center">
         <Link href="/">
           <Button variant="soft" size="2" color="blue">

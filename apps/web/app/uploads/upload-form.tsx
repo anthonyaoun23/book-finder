@@ -20,9 +20,13 @@ export default function UploadForm() {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    // Validate file type (image only)
-    if (!selectedFile.type.startsWith("image/")) {
-      setError("Please upload an image file");
+    // Get file extension
+    const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
+    
+    // Validate file type (only png, jpeg, jpg, gif, webp)
+    const allowedTypes = ['png', 'jpeg', 'jpg', 'gif', 'webp'];
+    if (!allowedTypes.includes(fileExtension || '') || !selectedFile.type.startsWith("image/")) {
+      setError("Please upload an image file (PNG, JPEG, GIF, or WEBP)");
       setFile(null);
       return;
     }
@@ -66,7 +70,7 @@ export default function UploadForm() {
 
         // Redirect to the upload detail page
         if (result.data && result.data.uploadId) {
-          router.push(`/uploads/${result.data.uploadId}`);
+          router.push(`/uploads/${result.data.uploadId}?upload=true`);
         }
       }
     } catch (err) {
@@ -107,7 +111,7 @@ export default function UploadForm() {
                 {file ? file.name : "Drag & drop or click to select a file"}
               </Text>
               <Text size="1" color="gray">
-                Upload a book cover image to extract information
+                Upload a book cover image (PNG, JPEG, GIF, WEBP) to extract information
               </Text>
 
               <Button
@@ -119,7 +123,7 @@ export default function UploadForm() {
                 Select File
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
                   onChange={handleFileChange}
                   style={{
                     position: "absolute",
