@@ -67,12 +67,32 @@ export class ImageAnalysisProcessor extends BaseProcessor {
         },
       });
 
+      if (analysis.title && analysis.author) {
+        const existingBook = await this.db.book.findUnique({
+          where: {
+            title_author_fiction: {
+              title: analysis.title,
+              author: analysis.author,
+              fiction: analysis.fiction ?? false,
+            },
+          },
+        });
+
+        if (existingBook) {
+          await this.db.upload.update({
+            where: { id: uploadId },
+            data: {
+              bookId: existingBook.id,
+              status: 'completed',
+            },
+          });
+          return;
+        }
+      }
+
       this.log(`Queueing book lookup for upload ${uploadId}`, { uploadId });
       await this.bookLookupQueue.add('lookup', {
         uploadId,
-        title: analysis.title,
-        author: analysis.author,
-        fiction: analysis.fiction,
       });
 
       return { message: 'Proceeding to book lookup' };
