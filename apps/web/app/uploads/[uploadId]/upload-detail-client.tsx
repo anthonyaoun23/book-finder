@@ -34,7 +34,7 @@ export default function UploadDetailClient({
   const [showFailedModal, setShowFailedModal] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isUploader = searchParams.get('isUploader') === 'true';
+  const isUploader = searchParams.get('upload') === 'true';
 
   const fetchUpload = useCallback(async () => {
     try {
