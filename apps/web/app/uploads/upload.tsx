@@ -29,7 +29,7 @@ export default function Upload({ upload }: UploadProps) {
   };
 
   const getFictionBadge = () => {
-    if (upload.extractedFiction === undefined && !upload.book) {
+    if (!upload.extractedFiction && !upload.book) {
       return null;
     }
     
