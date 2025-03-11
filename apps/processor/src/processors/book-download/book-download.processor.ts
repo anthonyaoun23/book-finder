@@ -1,132 +1,90 @@
-import { Processor } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { LibgenService } from '../services/libgen.service';
+import { Processor, InjectQueue } from '@nestjs/bullmq';
+import { Job, Queue } from 'bullmq';
 import { DbService } from '../../db/db.service';
 import { BaseProcessor, ProcessLogger } from '../../utils';
-
+import { LibgenService } from '../services/libgen.service';
+import { ConfigService } from '@nestjs/config';
 @Processor('book-download')
 export class BookDownloadProcessor extends BaseProcessor {
   constructor(
+    private readonly db: DbService,
     private readonly libgenService: LibgenService,
+    private readonly configService: ConfigService,
     @InjectQueue('content-extraction')
     private readonly contentExtractionQueue: Queue,
-    private readonly db: DbService,
   ) {
     super();
   }
 
   @ProcessLogger()
-  async process(
-    job: Job<{
-      uploadId: string;
-      title: string;
-      author: string;
-      fiction: boolean;
-      bookId: string;
-      isbn: string;
-    }>,
-  ) {
-    const { uploadId, title, author, fiction, isbn } = job.data;
-    this.log(`Processing book download for "${title}" by ${author}`, {
-      uploadId,
-      title,
-      author,
-      isbn: isbn || 'Not available',
-    });
+  async process(job: Job<{ uploadId: string }>) {
+    const { uploadId } = job.data;
+    this.log(`Book download start for upload ${uploadId}`, { uploadId });
+
+    const upload = await this.db.upload.findUnique({ where: { id: uploadId } });
+    if (!upload) {
+      this.warn(`Upload not found: ${uploadId}`);
+      return;
+    }
+    if (upload.status !== 'processing') {
+      this.debug(
+        `Not in processing state. Skipping. Current status: ${upload.status}`,
+      );
+      return;
+    }
+
+    const title = upload.refinedTitle || upload.extractedTitle;
+    const author = upload.refinedAuthor || upload.extractedAuthor;
+    const fiction = upload.extractedFiction ?? false;
+
+    if (!title || !author) {
+      this.warn(`No valid title/author. Marking failed.`, { uploadId });
+      await this.db.upload.update({
+        where: { id: uploadId },
+        data: { status: 'failed' },
+      });
+      return;
+    }
+
+    this.log(`Attempting LibGen for: "${title}" by ${author}`, { uploadId });
 
     try {
-      const authorLastName = author.split(' ').pop() || author;
-      this.debug(`Using author last name for search: ${authorLastName}`, {
-        uploadId,
-        fullName: author,
-        lastName: authorLastName,
-      });
-
-      const downloadDir = process.env.DOWNLOAD_DIR || './downloads';
-      this.debug(`Using download directory: ${downloadDir}`, {
-        uploadId,
-      });
-
-      this.debug(`Attempting to find and download book from Libgen`, {
-        uploadId,
-        title,
-        author: authorLastName,
-        format: 'pdf',
-        fiction,
-      });
-
+      const downloadDir =
+        this.configService.get('DOWNLOAD_DIR') || './downloads';
       const bookPath = await this.libgenService.findAndDownloadBook(
         title,
-        authorLastName,
+        author.split(' ').pop() || '',
         downloadDir,
         'pdf',
         fiction,
+        // TODO: Add isbn
       );
 
       if (!bookPath) {
-        this.warn(`No book found on LibGen`, {
-          uploadId,
-          title,
-          author: authorLastName,
-        });
-
+        this.warn(`No book found on LibGen. Marking failed.`, { uploadId });
         await this.db.upload.update({
           where: { id: uploadId },
           data: { status: 'failed' },
         });
-        return {
-          message: `No book found on LibGen for "${title}" by "${authorLastName}"`,
-        };
+        return;
       }
 
-      this.log(`Book successfully downloaded: ${bookPath}`, {
-        uploadId,
-        bookPath,
-      });
-
-      this.log(`Queueing content extraction for book`, {
-        uploadId,
-        bookPath,
-        title,
-        author,
-      });
-
+      // Next step: content extraction
       await this.contentExtractionQueue.add('extract', {
         uploadId,
-        bookPath,
-        fiction,
-        title,
-        author,
+        localFilePath: bookPath,
       });
-      return { message: 'Book downloaded, proceeding to content extraction' };
-    } catch (error: unknown) {
-      const errorStack = error instanceof Error ? error.stack : undefined;
 
-      this.error(`Error downloading book "${title}" by ${author}`, errorStack, {
+      return { message: 'Downloaded. Proceeding to content extraction.' };
+    } catch (err) {
+      this.error(`Error downloading book: ${String(err)}`, undefined, {
         uploadId,
-        title,
-        author,
       });
-
-      await this.db.upload
-        .update({
-          where: { id: uploadId },
-          data: { status: 'failed' },
-        })
-        .catch((updateError: unknown) => {
-          const updateErrorMessage =
-            updateError instanceof Error
-              ? updateError.message
-              : String(updateError);
-
-          this.error(
-            `Failed to update upload status to failed: ${updateErrorMessage}`,
-          );
-        });
-
-      throw error;
+      await this.db.upload.update({
+        where: { id: uploadId },
+        data: { status: 'failed' },
+      });
+      throw err;
     }
   }
 }

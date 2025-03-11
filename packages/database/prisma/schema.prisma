@@ -35,6 +35,10 @@ model Upload {
   extractedTitle   String?
   extractedAuthor  String?
   extractedFiction Boolean?
+  refinedTitle     String?
+  refinedAuthor    String?
+  confidence       Float?
+  rawOpenAIJson    Json?
   bookId           String?
   book             Book?    @relation(fields: [bookId], references: [id])
   status           String   @default("pending")

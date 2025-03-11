@@ -38,6 +38,7 @@ import { HealthController } from './health.controller';
             },
           };
         } catch (error) {
+          console.error('Error parsing REDIS_URL:', error);
           return {
             connection: {
               url: redisUrl,

@@ -12,8 +12,11 @@ import { RekognitionService } from './services/rekognition.service';
 import { TextractService } from './services/textract.service';
 import { BullModule } from '@nestjs/bullmq';
 import { DbService } from '../db/db.service';
+import { ConfigModule } from '@nestjs/config';
+import { LLMService } from './services/llm.service';
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     BullModule.registerQueue(
       { name: 'file-upload' },
       { name: 'image-analysis' },
@@ -35,6 +38,7 @@ import { DbService } from '../db/db.service';
     RekognitionService,
     TextractService,
     DbService,
+    LLMService,
   ],
 })
 export class ProcessorModule {}

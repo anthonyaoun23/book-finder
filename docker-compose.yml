@@ -19,35 +19,35 @@ services:
     ports:
       - "6379:6379"
   
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    container_name: book-finder-api
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://postgres:example@postgres:5432/book-finder
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      - postgres
-      - redis
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/api/Dockerfile
+  #   container_name: book-finder-api
+  #   restart: always
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     NODE_ENV: production
+  #     DATABASE_URL: postgres://postgres:example@postgres:5432/book-finder
+  #     REDIS_URL: redis://redis:6379
+  #   depends_on:
+  #     - postgres
+  #     - redis
 
-  processor:
-    build:
-      context: .
-      dockerfile: apps/processor/Dockerfile
-    container_name: book-finder-processor
-    restart: always
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://postgres:example@postgres:5432/book-finder
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      - postgres
-      - redis
+  # processor:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/processor/Dockerfile
+  #   container_name: book-finder-processor
+  #   restart: always
+  #   environment:
+  #     NODE_ENV: production
+  #     DATABASE_URL: postgres://postgres:example@postgres:5432/book-finder
+  #     REDIS_URL: redis://redis:6379
+  #   depends_on:
+  #     - postgres
+  #     - redis
 
 volumes:
   postgres-data:

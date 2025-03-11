@@ -114,6 +114,14 @@ FRONTMATTER includes:
 - Publisher information
 - ISBN numbers
 - Edition notices
+- Quotes
+- Illustrations
+- Tables
+- Equations
+- Code
+- Lists
+- Footnotes
+- Endnotes
 
 ACTUAL CONTENT includes:
 - The main text of the book

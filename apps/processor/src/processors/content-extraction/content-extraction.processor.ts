@@ -1,15 +1,15 @@
 import { Processor } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { BookFormatHandlerService } from '../services/book-format-handler.service';
 import { DbService } from '../../db/db.service';
-import { BaseProcessor } from '../../utils/base-processor';
-import { ProcessLogger } from '../../utils/process-logger.decorator';
-
+import { BaseProcessor, ProcessLogger } from '../../utils';
+import { BookFormatHandlerService } from '../services/book-format-handler.service';
+import { LLMService } from '../services/llm.service';
 @Processor('content-extraction')
 export class ContentExtractionProcessor extends BaseProcessor {
   constructor(
-    private readonly bookFormatHandler: BookFormatHandlerService,
     private readonly db: DbService,
+    private readonly bookFormatHandler: BookFormatHandlerService,
+    private readonly llmService: LLMService,
   ) {
     super();
   }
@@ -18,120 +18,104 @@ export class ContentExtractionProcessor extends BaseProcessor {
   async process(
     job: Job<{
       uploadId: string;
-      bookPath: string;
-      fiction: boolean;
-      title: string;
-      author: string;
+      localFilePath: string;
     }>,
   ) {
-    const { uploadId, bookPath, fiction, title, author } = job.data;
-    this.log(`Processing content extraction for "${title}" by ${author}`, {
-      uploadId,
-      bookPath,
-      fiction,
+    const { uploadId, localFilePath } = job.data;
+    this.log(`Content extraction for ${uploadId}`, { uploadId, localFilePath });
+
+    const upload = await this.db.upload.findUnique({
+      where: { id: uploadId },
     });
+    if (!upload) {
+      this.warn(`Upload not found for ID: ${uploadId}`);
+      return;
+    }
+    if (upload.status !== 'processing') {
+      this.debug(`Upload not in processing state: ${upload.status}`);
+      return;
+    }
 
+    const fiction = upload.extractedFiction ?? false;
     try {
-      // Find the first content page in the book
-      this.debug(`Finding first content page in book`, {
-        uploadId,
-        bookPath,
-        maxPagesToCheck: 20,
-        fiction,
-      });
+      const maxPages = 20;
+      let foundPages = 0;
+      let chosenPageNumber = -1;
+      for (let i = 1; i <= maxPages; i++) {
+        const rawText = await this.bookFormatHandler.extractPageText(
+          localFilePath,
+          i,
+        );
+        if (!rawText) continue;
 
-      const contentPage = await this.bookFormatHandler.findFirstContentPage(
-        bookPath,
-        20,
-        { fiction },
+        const truncatedText = rawText.slice(0, 1000);
+        const classification = await this.llmService.classifyPageContent(
+          truncatedText,
+          i,
+          fiction,
+        );
+
+        if (classification === 'CONTENT') {
+          foundPages++;
+          if (fiction && foundPages === 2) {
+            chosenPageNumber = i;
+            break;
+          } else if (!fiction && foundPages === 1) {
+            chosenPageNumber = i;
+            break;
+          }
+        }
+      }
+
+      if (chosenPageNumber < 1) {
+        this.warn(
+          `No page found that was classified as content. Fallback to page 1.`,
+          {
+            uploadId,
+          },
+        );
+        chosenPageNumber = 1;
+      }
+
+      const finalRawText = await this.bookFormatHandler.extractPageText(
+        localFilePath,
+        chosenPageNumber,
       );
-
-      // Handle case where no content page is found
-      if (!contentPage) {
-        this.warn(`No content page found in book`, {
+      if (!finalRawText) {
+        this.warn(`Could not extract text from page ${chosenPageNumber}.`, {
           uploadId,
-          bookPath,
         });
-
         await this.db.upload.update({
           where: { id: uploadId },
           data: { status: 'failed' },
         });
-        return { message: 'Content extraction failed' };
+        return;
       }
 
-      // Determine which page to extract based on fiction/non-fiction
-      const targetPageNumber = fiction
-        ? contentPage.pageNumber + 1
-        : contentPage.pageNumber;
-      
-      this.debug(`Selected page ${targetPageNumber} for extraction`, {
-        uploadId,
-        contentPageFound: contentPage.pageNumber,
-        targetPage: targetPageNumber,
-        isFiction: fiction,
-      });
+      const nicelyFormatted =
+        await this.llmService.formatExtractedSnippet(finalRawText);
 
-      // Extract the text from the target page
-      this.debug(`Extracting text from page ${targetPageNumber}`, {
-        uploadId,
-        bookPath,
-      });
-
-      const targetPageText = await this.bookFormatHandler.extractPageText(
-        bookPath,
-        targetPageNumber,
-      );
-
-      // Handle case where text extraction fails
-      if (!targetPageText) {
-        this.warn(`Failed to extract text from page ${targetPageNumber}`, {
-          uploadId,
-          bookPath,
-          pageNumber: targetPageNumber,
-        });
-
-        await this.db.upload.update({
-          where: { id: uploadId },
-          data: { status: 'failed' },
-        });
-        return { message: `Failed to extract page ${targetPageNumber}` };
-      }
-
-      // Log successful text extraction
-      this.debug(`Successfully extracted ${targetPageText.length} characters from page`, {
-        uploadId,
-        pageNumber: targetPageNumber,
-        textLength: targetPageText.length,
-      });
-
-      // Create or update the book in the database
-      this.debug(`Upserting book record in database`, {
-        uploadId,
-        title,
-        author,
-        fiction,
-      });
-
+      const title =
+        upload.refinedTitle || upload.extractedTitle || 'Unknown Title';
+      const author =
+        upload.refinedAuthor || upload.extractedAuthor || 'Unknown Author';
       const book = await this.db.book.upsert({
         where: {
-          title_author_fiction: { title, author, fiction },
+          title_author_fiction: {
+            title,
+            author,
+            fiction,
+          },
         },
         create: {
           title,
           author,
           fiction,
-          pageContent: targetPageText,
+          pageContent: nicelyFormatted,
         },
         update: {
-          pageContent: targetPageText,
+          pageContent: nicelyFormatted,
         },
-      });
-
-      // Update the upload record to link to the book
-      this.log(`Content extraction successful, updating upload record`, {
-        uploadId,
-        bookId: book.id,
       });
 
       await this.db.upload.update({
@@ -142,32 +126,20 @@ export class ContentExtractionProcessor extends BaseProcessor {
         },
       });
 
-      return { pageNumber: targetPageNumber, text: targetPageText };
+      return {
+        pageNumber: chosenPageNumber,
+        text: nicelyFormatted,
+      };
     } catch (error: unknown) {
-      // Handle errors
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      
-      this.error(
-        `Error extracting content from book "${title}" by ${author}`,
-        errorStack,
-        { uploadId, bookPath },
-      );
-      
-      // Update the upload status to failed
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.error(`Error extracting content: ${errorMessage}`, undefined, {
+        uploadId,
+      });
       await this.db.upload.update({
         where: { id: uploadId },
         data: { status: 'failed' },
-      }).catch((updateError: unknown) => {
-        const updateErrorMessage = updateError instanceof Error 
-          ? updateError.message 
-          : String(updateError);
-        
-        this.error(
-          `Failed to update upload status to failed: ${updateErrorMessage}`,
-        );
       });
-      
       throw error;
     }
   }

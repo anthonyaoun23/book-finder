@@ -1,121 +1,87 @@
-import { Processor } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { GoogleBooksService } from '../services/google-books.service';
+import { Processor, InjectQueue } from '@nestjs/bullmq';
+import { Job, Queue } from 'bullmq';
 import { DbService } from '../../db/db.service';
 import { BaseProcessor, ProcessLogger } from '../../utils';
+import { GoogleBooksService } from '../services/google-books.service';
 
 @Processor('book-lookup')
 export class BookLookupProcessor extends BaseProcessor {
   constructor(
+    private readonly db: DbService,
     private readonly googleBooksService: GoogleBooksService,
     @InjectQueue('book-download') private readonly bookDownloadQueue: Queue,
-    private readonly db: DbService,
   ) {
     super();
   }
 
   @ProcessLogger()
-  async process(
-    job: Job<{
-      uploadId: string;
-      title: string;
-      author: string;
-      fiction: boolean;
-    }>,
-  ) {
-    const { uploadId, title, author, fiction } = job.data;
-    this.log(`Processing book lookup for "${title}" by ${author}`, {
-      uploadId,
-      title,
-      author,
-    });
+  async process(job: Job<{ uploadId: string }>) {
+    const { uploadId } = job.data;
+    this.log(`Book lookup for upload ${uploadId}`, { uploadId });
+
+    const upload = await this.db.upload.findUnique({ where: { id: uploadId } });
+    if (!upload) {
+      this.warn(`Upload not found: ${uploadId}`);
+      return;
+    }
+
+    if (upload.status !== 'processing') {
+      this.debug(`Upload status not "processing", skipping: ${upload.status}`);
+      return;
+    }
+
+    const title = upload.refinedTitle || upload.extractedTitle;
+    const author = upload.refinedAuthor || upload.extractedAuthor;
+
+    if (!title || !author) {
+      this.warn(`No title or author to look up. Marking failed.`, { uploadId });
+      await this.db.upload.update({
+        where: { id: uploadId },
+        data: { status: 'failed' },
+      });
+      return;
+    }
+
+    this.debug(
+      `Searching Google Books with title="${title}", author="${author}"`,
+    );
 
     try {
-      this.debug(`Searching for book details via Google Books API`, {
-        uploadId,
+      const googleBook = await this.googleBooksService.searchBook(
         title,
         author,
-      });
-      const book = await this.googleBooksService.searchBook(title, author);
-
-      if (!book) {
-        this.warn(`No matching book found on Google Books`, {
+      );
+      if (!googleBook) {
+        this.warn(`GoogleBooks: no match found.`, {
           uploadId,
-          title,
-          author,
         });
+        // TODO: fallback to alternative search
+      } else {
+        const volumeInfo = googleBook.volumeInfo;
+        const refinedTitle = volumeInfo.title;
+        const refinedAuthor = volumeInfo.authors
+          ? volumeInfo.authors[0]
+          : author;
+
+        // TODO: additional enrichment
+        // const fiction = volumeInfo.categories?.includes('Fiction');
+        // const isbn = volumeInfo.industryIdentifiers?.find(
+        //   (id) => id.type === 'ISBN_13',
+        // )?.identifier;
 
         await this.db.upload.update({
           where: { id: uploadId },
-          data: { status: 'failed' },
+          data: {
+            refinedTitle,
+            refinedAuthor,
+          },
         });
-        return {
-          message: `No matching book found for "${title}" by "${author}"`,
-        };
       }
-
-      this.debug(`Book found on Google Books`, {
-        uploadId,
-        googleBookId: book.id,
-        title: book.volumeInfo.title,
-        authors: book.volumeInfo.authors,
-      });
-
-      const isbn = book.volumeInfo.industryIdentifiers?.find(
-        (id) => id.type === 'ISBN_13',
-      )?.identifier;
-
-      this.debug(`Book identifiers found`, {
-        uploadId,
-        googleBookId: book.id,
-        isbn: isbn || 'Not found',
-      });
-
-      this.log(`Queueing book download`, {
-        uploadId,
-        title,
-        author,
-        googleBookId: book.id,
-      });
-
-      await this.bookDownloadQueue.add('download', {
-        uploadId,
-        title,
-        author,
-        fiction,
-        bookId: book.id,
-        isbn,
-      });
-
-      return { message: 'Book found, proceeding to download' };
-    } catch (error: unknown) {
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
-      this.error(
-        `Error processing book lookup for "${title}" by ${author}`,
-        errorStack,
-        { uploadId, title, author },
-      );
-
-      await this.db.upload
-        .update({
-          where: { id: uploadId },
-          data: { status: 'failed' },
-        })
-        .catch((updateError: unknown) => {
-          const updateErrorMessage =
-            updateError instanceof Error
-              ? updateError.message
-              : String(updateError);
-
-          this.error(
-            `Failed to update upload status to failed: ${updateErrorMessage}`,
-          );
-        });
-
-      throw error;
+    } catch (err) {
+      this.error(`GoogleBooks error: ${String(err)}`);
     }
+
+    await this.bookDownloadQueue.add('download', { uploadId });
+    return { message: 'Book lookup complete, proceeding to download' };
   }
 }
