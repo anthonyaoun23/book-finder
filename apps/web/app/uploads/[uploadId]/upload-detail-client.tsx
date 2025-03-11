@@ -34,7 +34,7 @@ export default function UploadDetailClient({
   const [showFailedModal, setShowFailedModal] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isUploader = searchParams.get('upload') === 'true';
+  const isUploader = searchParams.get("upload") === "true";
 
   const fetchUpload = useCallback(async () => {
     try {
@@ -58,19 +58,19 @@ export default function UploadDetailClient({
 
   useEffect(() => {
     if (!upload || !isUploader) return;
-    
+
     if (upload.status === "failed") {
       setShowFailedModal(true);
     }
-    
+
     if (upload.status !== "pending" && upload.status !== "processing") {
       return;
     }
-    
+
     const pollingTimer = setTimeout(async () => {
       await fetchUpload();
     }, 5000);
-    
+
     return () => {
       clearTimeout(pollingTimer);
     };
@@ -131,13 +131,13 @@ export default function UploadDetailClient({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
   };
 
@@ -147,19 +147,17 @@ export default function UploadDetailClient({
         <Dialog.Content>
           <Dialog.Title>Upload Failed</Dialog.Title>
           <Dialog.Description size="2" mb="4">
-            The book upload process has failed. Either it wasn't a valid book cover or something went wrong during processing.
+            The book upload process has failed. Either it wasn't a valid book
+            cover or something went wrong during processing.
           </Dialog.Description>
-          
+
           <Flex gap="3" justify="end">
             <Dialog.Close>
               <Button variant="soft" color="gray">
                 Stay on this page
               </Button>
             </Dialog.Close>
-            <Button 
-              color="blue" 
-              onClick={() => router.push('/')}
-            >
+            <Button color="blue" onClick={() => router.push("/")}>
               Return to homepage
             </Button>
           </Flex>
@@ -192,44 +190,60 @@ export default function UploadDetailClient({
 
       <Grid columns={{ initial: "1", md: "2" }} gap="6">
         <Box>
-          <Card size="2" style={{ boxShadow: '0 4px 20px rgba(0, 120, 255, 0.1)' }}>
+          <Card
+            size="2"
+            style={{ boxShadow: "0 4px 20px rgba(0, 120, 255, 0.1)" }}
+          >
             <Flex direction="column" gap="4">
-              <Heading size="5" color="blue">Book Cover</Heading>
+              <Heading size="5" color="blue">
+                Book Cover
+              </Heading>
               <Box
                 position="relative"
                 height="300px"
-                style={{ 
-                  overflow: "hidden", 
+                style={{
+                  overflow: "hidden",
                   borderRadius: "var(--radius-3)",
                   border: "1px solid var(--blue-5)",
                 }}
               >
                 {!upload.imageUrl ? (
-                  <Flex 
-                    align="center" 
+                  <Flex
+                    align="center"
                     justify="center"
-                    height="100%" 
-                    style={{ 
-                      backgroundColor: 'var(--gray-3)', 
-                      animation: 'pulse 1.5s ease-in-out infinite alternate',
+                    height="100%"
+                    style={{
+                      backgroundColor: "var(--gray-3)",
+                      animation: "pulse 1.5s ease-in-out infinite alternate",
                     }}
                   >
-                    <Box width="100%" height="100%" style={{ position: 'relative' }}>
+                    <Box
+                      width="100%"
+                      height="100%"
+                      style={{ position: "relative" }}
+                    >
                       <style jsx global>{`
                         @keyframes pulse {
-                          0% { opacity: 0.6; }
-                          100% { opacity: 1; }
+                          0% {
+                            opacity: 0.6;
+                          }
+                          100% {
+                            opacity: 1;
+                          }
                         }
                       `}</style>
-                      <Flex 
-                        align="center" 
-                        justify="center" 
+                      <Flex
+                        align="center"
+                        justify="center"
                         height="100%"
                         direction="column"
                         gap="2"
                       >
-                        <Text color="gray" size="2">Image processing...</Text>
-                        {(upload.status === "pending" || upload.status === "processing") && (
+                        <Text color="gray" size="2">
+                          Image processing...
+                        </Text>
+                        {(upload.status === "pending" ||
+                          upload.status === "processing") && (
                           <Spinner size="2" />
                         )}
                       </Flex>
@@ -246,17 +260,16 @@ export default function UploadDetailClient({
                   />
                 )}
               </Box>
-              
+
               <Flex direction="column" gap="2">
-                <Text size="2" weight="bold" color="blue">Upload Details</Text>
-                <Text size="2">
-                  Uploaded: {formatDate(upload.createdAt)}
+                <Text size="2" weight="bold" color="blue">
+                  Upload Details
                 </Text>
+                <Text size="2">Uploaded: {formatDate(upload.createdAt)}</Text>
                 <Flex align="center" gap="2">
                   <Text size="2">Status: {upload.status}</Text>
-                  {(upload.status === "pending" || upload.status === "processing") && (
-                    <Spinner size="1" />
-                  )}
+                  {(upload.status === "pending" ||
+                    upload.status === "processing") && <Spinner size="1" />}
                 </Flex>
               </Flex>
             </Flex>
@@ -264,15 +277,22 @@ export default function UploadDetailClient({
         </Box>
 
         <Box>
-          <Card size="2" style={{ boxShadow: '0 4px 20px rgba(0, 120, 255, 0.1)' }}>
+          <Card
+            size="2"
+            style={{ boxShadow: "0 4px 20px rgba(0, 120, 255, 0.1)" }}
+          >
             <Flex direction="column" gap="4">
-              <Heading size="5" color="blue">Book Information</Heading>
-              
+              <Heading size="5" color="blue">
+                Book Information
+              </Heading>
+
               {upload.status === "pending" || upload.status === "processing" ? (
                 <Flex direction="column" gap="3" align="center" py="4">
                   <Spinner size="2" />
                   <Text align="center">Processing book information...</Text>
-                  <Text size="2" color="gray" align="center">This may take a minute</Text>
+                  <Text size="2" color="gray" align="center">
+                    This may take a minute
+                  </Text>
                 </Flex>
               ) : upload.status === "failed" ? (
                 <Text color="red">
@@ -281,49 +301,67 @@ export default function UploadDetailClient({
               ) : (
                 <Flex direction="column" gap="4">
                   <Flex direction="column" gap="1">
-                    <Text size="2" weight="bold" color="blue">Title</Text>
+                    <Text size="2" weight="bold" color="blue">
+                      Title
+                    </Text>
                     <Text>
                       {upload.book?.title || upload.extractedTitle || "Unknown"}
                     </Text>
                   </Flex>
 
                   <Flex direction="column" gap="1">
-                    <Text size="2" weight="bold" color="blue">Author</Text>
+                    <Text size="2" weight="bold" color="blue">
+                      Author
+                    </Text>
                     <Text>
-                      {upload.book?.author || upload.extractedAuthor || "Unknown"}
+                      {upload.book?.author ||
+                        upload.extractedAuthor ||
+                        "Unknown"}
                     </Text>
                   </Flex>
 
                   <Flex direction="column" gap="1">
-                    <Text size="2" weight="bold" color="blue">Type</Text>
+                    <Text size="2" weight="bold" color="blue">
+                      Type
+                    </Text>
                     <Text>
-                      {upload.book?.fiction !== undefined || upload.extractedFiction !== undefined
-                        ? (upload.book?.fiction || upload.extractedFiction)
+                      {upload.book?.fiction !== undefined ||
+                      upload.extractedFiction !== undefined
+                        ? upload.book?.fiction || upload.extractedFiction
                           ? "Fiction"
                           : "Non-Fiction"
                         : "Unknown"}
                     </Text>
                   </Flex>
-
-                  {upload.book?.pageContent && (
-                    <>
-                      <Separator size="4" />
-                      <Flex direction="column" gap="1">
-                        <Text size="2" weight="bold" color="blue">First Page Content</Text>
-                        <Card variant="classic" size="1" style={{ backgroundColor: 'rgba(224, 242, 254, 0.3)' }}>
-                          <Text style={{ whiteSpace: "pre-wrap" }}>
-                            {upload.book.pageContent}
-                          </Text>
-                        </Card>
-                      </Flex>
-                    </>
-                  )}
                 </Flex>
               )}
             </Flex>
           </Card>
         </Box>
       </Grid>
+      {upload.book?.pageContent && (
+        <Card
+          size="2"
+          style={{ boxShadow: "0 4px 20px rgba(0, 120, 255, 0.1)" }}
+        >
+          <Flex direction="column" gap="1">
+            <Heading size="5" color="blue">
+              {upload.book.fiction
+                ? "Second Page Content"
+                : "First Page Content"}
+            </Heading>
+            <Card
+              variant="classic"
+              size="1"
+              style={{ backgroundColor: "rgba(224, 242, 254, 0.3)" }}
+            >
+              <Text style={{ whiteSpace: "pre-wrap" }}>
+                {upload.book.pageContent}
+              </Text>
+            </Card>
+          </Flex>
+        </Card>
+      )}
     </Flex>
   );
-} 
+}
