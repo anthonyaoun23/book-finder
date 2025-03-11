@@ -4,7 +4,6 @@ import { BookLookupProcessor } from './book-lookup/book-lookup.processor';
 import { BookDownloadProcessor } from './book-download/book-download.processor';
 import { ContentExtractionProcessor } from './content-extraction/content-extraction.processor';
 import { FileUploadProcessor } from './file-upload/file-upload.processor';
-import { OpenAIService } from './services/openai.service';
 import { GoogleBooksService } from './services/google-books.service';
 import { LibgenService } from './services/libgen.service';
 import { BookFormatHandlerService } from './services/book-format-handler.service';
@@ -31,7 +30,6 @@ import { LLMService } from './services/llm.service';
     BookLookupProcessor,
     BookDownloadProcessor,
     ContentExtractionProcessor,
-    OpenAIService,
     GoogleBooksService,
     LibgenService,
     BookFormatHandlerService,
